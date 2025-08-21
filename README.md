@@ -231,7 +231,7 @@ This information needs to be entered on the domain http://localhost:8080/IPS/Rot
 
 ```json
 {
-  "file": "Build/Createananimeimag.png",
+  "file": "Build/10.png",
   "rotate": "90"
 }
 ```
