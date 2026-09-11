@@ -1,258 +1,268 @@
-# IPS (Image Processing Service)
+# Image Processing System (IPS)
 
-This package analyzes the image and makes changes based on your wishes.
-Before a detailed explanation, I must mention the licenses of this project:
+IPS is an image processing system that allows users to manipulate and transform images through an interactive CLI.
 
-The names of the packages used along with the licenses for each are as follows:
+The project provides a variety of image processing features, including compression, cropping, filtering, flipping, format conversion, resizing, rotation, and watermarking.
 
-1-mysql    License  ==  [License](https://github.com/go-sql-driver/mysql?tab=MPL-2.0-1-ov-file "License mysql")
-Mozilla Public License Version 2.0
+## Current Status
 
----------------------------------------
+The project is currently being developed in CLI mode.
 
-2-gin      License  ==  [License](https://github.com/gin-gonic/gin?tab=MIT-1-ov-file "License gin") 
-Copyright (c) 2014 Manuel Martínez-Almeida
+Server/API support was previously part of the project and will be reintroduced and further developed in a future version.
 
----------------------------------------
+## License & Third-Party Dependencies
 
-3-uuid      License  ==  [License](https://github.com/google/uuid?tab=License-1-ov-file "License uuid") 
-Copyright (c) 2009,2014 Google Inc. All rights reserved.
+This project uses several open-source packages. The packages and their respective licenses are listed below.
 
----------------------------------------
+### 1. MySQL Driver
 
-4-Imaging      License  ==  [License](https://github.com/disintegration/imaging?tab=MIT-1-ov-file "License Imaging")
-Copyright (c) 2012 Grigory Dryapak
+**Package:** `go-sql-driver/mysql`
+**License:** Mozilla Public License 2.0 (MPL-2.0)
 
+[License](https://github.com/go-sql-driver/mysql/blob/master/LICENSE)
 
----------------------------------------
+### 2. Gin
 
-5-jwt-go      License  ==  [License](https://github.com/golang-jwt/jwt?tab=MIT-1-ov-file "jwt-go")
-Copyright (c) 2012 Dave Grijalva
-Copyright (c) 2021 golang-jwt maintainers
+**Package:** `gin-gonic/gin`
+**License:** MIT License
 
----------------------------------------
+[License](https://github.com/gin-gonic/gin?tab=MIT-1-ov-file)
 
-Well, after fully understanding this package, now it's time to learn how to use it:
+### 3. UUID
 
+**Package:** `google/uuid`
+**License:** BSD 3-Clause License
 
-Package features:
+[License](https://github.com/google/uuid?tab=License-1-ov-file)
 
-  * [Login](#Login)  
-  * [Sign](#Sign)
-  * [Upload](#Upload)
-  * [Compress](#Compress)
-  * [Crop](#Crop)
-  * [ApplyFilter](#ApplyFilter)
-  * [Flip](#Flip)
-  * [ChangeFormat](#ChangeFormat)
-  * [Resize](#Resize)
-  * [Rotate](#Rotate)
-  * [Watermark](#Watermark)
+### 4. Imaging
 
+**Package:** `disintegration/imaging`
+**License:** MIT License
 
-  
----------------------------------------
-## Login
-> [!IMPORTANT]
->The database of this project is built in Docker, so the code is local.
+[License](https://github.com/disintegration/imaging?tab=MIT-1-ov-file)
 
-This information needs to be entered on the domain http://localhost:8080/IPS/login.
-```json
-{
-  "username" : "admin",
-  "password" : "admin"
-}
-```
-Gives token code
-The token time is 1 hour.
+### 5. JWT
 
-## Sign
-This information needs to be entered on the domain http://localhost:8080/IPS/sign.
+**Package:** `golang-jwt/jwt`
+**License:** MIT License
 
-```json
-{
-  "username" : "admin",
-  "password" : "admin"
-}
-```
+[License](https://github.com/golang-jwt/jwt?tab=MIT-1-ov-file)
 
-## Upload
-This information needs to be entered on the domain http://localhost:8080/IPS/Upload
+---
 
-```
-    headers = {
-    "Authorization": "Bearer {Token}",
-    "Content-Type": "application/json"  
-    }
-```
-
-```json
-{
-  "image" : "address"
-}
-```
-Saves the file name in the database.
+Now that you have an overview of the project and its dependencies, let's take a look at how to use IPS.
 
 
-## Compress
+# Image Processing System (IPS)
 
-This information needs to be entered on the domain http://localhost:8080/IPS/Compress
+IPS is an image processing system that provides image manipulation features through an interactive CLI.
 
-```
-    headers = {
-    "Authorization": "Bearer {Token}",
-    "Content-Type": "application/json"  
-    }
-```
+## Current Status
 
-```json
-{
-  "file": "Build/10.png",
-  "quality": "10"
-}
-```
+The project is currently being developed in CLI mode.
 
-## Crop
+Server/API support was previously part of the project and will be reintroduced and further developed in a future version.
 
-This information needs to be entered on the domain http://localhost:8080/IPS/Crop
+## Features
 
-```
-    headers = {
-    "Authorization": "Bearer {Token}",
-    "Content-Type": "application/json"  
-    }
+### Image Processing
+
+* **Compress** — Compress an image and reduce its file size.
+* **Crop** — Crop an image using custom dimensions and coordinates.
+* **Filter** — Apply grayscale, sepia, or invert filters.
+* **Flip** — Flip an image horizontally or vertically.
+* **Change Format** — Convert an image between supported formats.
+* **Resize** — Resize an image using a custom width and height.
+* **Rotate** — Rotate an image by a specified angle.
+* **Watermark** — Add an image watermark with configurable opacity and display mode.
+
+### CLI Features
+
+* **Path** — View and change the current image path.
+* **Sign** — Sign in or register a user.
+* **Help** — Display available commands and usage information.
+* **Exit** — Close the CLI application.
+
+## Available Commands
+
+| Command     | Description                                               |
+|-------------|-----------------------------------------------------------|
+| `compress`  | Compress an image and reduce its file size                |
+| `crop`      | Crop an image to the specified dimensions and position    |
+| `filter`    | Apply a filter to an image                                |
+| `flip`      | Flip an image horizontally or vertically                  |
+| `format`    | Convert an image to another format                        |
+| `resize`    | Resize an image to the specified dimensions               |
+| `rotate`    | Rotate an image by a specified angle                      |
+| `watermark` | Add an image watermark with configurable opacity and mode |
+| `path`      | Show or change the current image path                     |
+| `sign`      | Sign in or register a user                                |
+| `help`      | Show help information                                     |
+| `exit`      | Exit the application                                      |
+
+## Image Processing Details
+
+### Compress
+
+Compress an image using a quality value from `1` to `100`.
+
+```text
+cli compress
 ```
 
-```json
-{
-  "file": "Build/10.png",
-  "width": "800",
-  "height": "100",
-  "x": "200",
-  "y": "500"
-}
+The CLI will prompt for the required information.
+
+### Crop
+
+Crop an image using:
+
+* Width
+* Height
+* X coordinate
+* Y coordinate
+
+```text
+cli crop
 ```
 
-## ApplyFilter
+### Filter
 
-This information needs to be entered on the domain http://localhost:8080/IPS/ApplyFilter
+Apply one of the supported filters:
 
-```
-    headers = {
-    "Authorization": "Bearer {Token}",
-    "Content-Type": "application/json"  
-    }
-```
+* `grayscale`
+* `sepia`
+* `invert`
 
-```json
-{
-  "file": "Build/10.png",
-  "filter": "grayscale"
-
-}
-```
-It has 3 modes:
-
-1- grayscale
-2- sepia
-3- invert
-
-## Flip
-
-This information needs to be entered on the domain http://localhost:8080/IPS/Flip
-
-```
-    headers = {
-    "Authorization": "Bearer {Token}",
-    "Content-Type": "application/json"  
-    }
+```text
+cli filter
 ```
 
-```json
-{
-  "file": "Build/10.png",
-  "mode": "horizontal"
+### Flip
 
-}
+Flip the image using one of the following modes:
+
+* `horizontal`
+* `vertical`
+
+```text
+cli flip
 ```
 
-## ChangeFormat
+### Change Format
 
-This information needs to be entered on the domain http://localhost:8080/IPS/ChangeFormat
+Convert an image to another supported format.
 
-```
-    headers = {
-    "Authorization": "Bearer {Token}",
-    "Content-Type": "application/json"  
-    }
-```
+Currently supported formats:
 
-```json
-{
-  "file": "Build/10.png",
-  "format": "jpg"
+* `jpg`
+* `png`
 
-}
+```text
+cli format
 ```
 
+### Resize
 
+Resize an image using a custom width and height.
 
-
-## Resize
-
-This information needs to be entered on the domain http://localhost:8080/IPS/Resize
-
-```
-    headers = {
-    "Authorization": "Bearer {Token}",
-    "Content-Type": "application/json"  
-    }
+```text
+cli resize
 ```
 
-```json
-{
-  "file": "Build/10.png",
-  "width": "500",
-  "height": "500"
-}
+### Rotate
+
+Rotate an image by a specified angle.
+
+```text
+cli rotate
 ```
 
+### Watermark
 
-## Rotate
+Add an image watermark to the current image.
 
-This information needs to be entered on the domain http://localhost:8080/IPS/Rotate
+Watermark options include:
 
-```
-    headers = {
-    "Authorization": "Bearer {Token}",
-    "Content-Type": "application/json"  
-    }
-```
+* **Opacity:** `0–100`
+* **Mode:** `single` or `tile`
 
-```json
-{
-  "file": "Build/10.png",
-  "rotate": "90"
-}
+```text
+cli watermark
 ```
 
+## Path Management
 
+The `path` command is used to view or change the current image path.
 
-## Watermark
-
-This information needs to be entered on the domain http://localhost:8080/IPS/Watermark
-
-```
-    headers = {
-    "Authorization": "Bearer {Token}",
-    "Content-Type": "application/json"  
-    }
+```text
+cli path
 ```
 
-```json
-{
-  "file": "Build/10.png",
-  "watermark": "Build/11.png",
-  "opacity": "50"
-}
+Set the image path before using image-processing commands.
+
+## Authentication
+
+The CLI includes user authentication through the `sign` command.
+
+Users can:
+
+* Sign in with an existing account.
+* Register a new account.
+
+```text
+cli sign
 ```
+
+Authentication is required before using image-processing commands.
+
+## Help
+
+Display the available commands and their descriptions:
+
+```text
+cli help
+```
+
+## Exit
+
+Close the CLI application:
+
+```text
+cli exit
+```
+
+You can also use:
+
+```text
+exit
+```
+
+## Usage Notes
+
+* Sign in before using image-processing commands.
+* Set the image path before processing an image.
+* Follow the prompts displayed by each command.
+* Use `cli help` to view the available commands.
+* Use `exit` to close the application.
+
+## Example Workflow
+
+A typical workflow looks like this:
+
+```text
+cli sign
+cli path
+cli resize
+cli filter
+cli compress
+cli watermark
+```
+
+Each command guides the user through the required options.
+
+## Project Roadmap
+
+The current focus of the project is the CLI implementation.
+
+Future development will include bringing back the server/API layer and expanding the system with additional features.

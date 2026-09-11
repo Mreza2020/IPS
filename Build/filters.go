@@ -2,47 +2,42 @@ package Build
 
 import (
 	"bytes"
-	"github.com/disintegration/imaging"
-	"github.com/gin-gonic/gin"
+	"fmt"
 	"image"
 	"image/color"
 	"image/jpeg"
-	"net/http"
+	"image/png"
 	"os"
+	"path/filepath"
 	"strings"
+
+	"github.com/Mreza2020/Image_Processing_Service/DB"
+	"github.com/disintegration/imaging"
 )
 
-type FilterRequest struct {
-	File   string `json:"file"`
-	Filter string `json:"filter"`
-}
-
-func ApplyFilter(c *gin.Context) {
-	var filterRequest FilterRequest
-	if err := c.ShouldBindJSON(&filterRequest); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON request"})
-		return
-	}
-	file, err := os.Open(filterRequest.File)
+// ApplyFilter applies the specified filter to an image and saves the processed
+// result as a new file while preserving the original image format. Supported
+// filters are grayscale, sepia, and invert. It returns "ok" when the operation
+// succeeds and an empty string if the image is invalid, the filter or file
+// format is unsupported, or the processed image cannot be encoded or saved.
+func ApplyFilter(fileName, filter string) string {
+	file, err := os.Open(fileName)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File not found"})
-		return
+		fmt.Println(err)
+		return ""
 	}
-	defer func(file *os.File) {
-		err = file.Close()
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"response": "Failed to properly close the file"})
-			return
-		}
-	}(file)
+	defer file.Close()
+
 	srcImage, err := imaging.Decode(file)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid image format"})
-		return
+		fmt.Printf("Invalid image format : %v", err)
+
+		return ""
 	}
-	filter := strings.ToLower(filterRequest.Filter)
+
+	filter1 := strings.ToLower(filter)
 	var dstImage image.Image
-	switch filter {
+	switch filter1 {
 	case "grayscale":
 		dstImage = imaging.Grayscale(srcImage)
 	case "sepia":
@@ -68,17 +63,44 @@ func ApplyFilter(c *gin.Context) {
 	case "invert":
 		dstImage = imaging.Invert(srcImage)
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported filter"})
-		return
+		fmt.Printf("Unsupported filter: %s\n", filter)
+
+		return ""
 	}
 
 	var buf bytes.Buffer
-	opts := &jpeg.Options{Quality: 100}
-	if err = jpeg.Encode(&buf, dstImage, opts); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode image"})
-		return
+	var outputFile string
+
+	ext := strings.ToLower(filepath.Ext(fileName))
+
+	fileName1 := strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName))
+
+	dir := filepath.Dir(fileName)
+	switch ext {
+	case ".jpg", ".jpeg":
+		opts := &jpeg.Options{Quality: 100}
+		if err = jpeg.Encode(&buf, dstImage, opts); err != nil {
+			fmt.Printf("Failed to encode image : %v", err)
+
+			return ""
+		}
+		outputFile = filepath.Join(dir, fileName1+"_filter.jpg")
+	case ".png":
+		if err = png.Encode(&buf, dstImage); err != nil {
+			fmt.Printf("Failed to encode image: %s\n", err)
+
+			return ""
+
+		}
+		outputFile = filepath.Join(dir, fileName1+"_filter.png")
+	default:
+		fmt.Println("Unsupported file extension")
+
+		return ""
+
 	}
+	path := DB.SaveImage(&buf, outputFile)
+	fmt.Printf("Filter %s applied to %s\n", filter1, path)
 
-	c.Data(http.StatusOK, "image/jpeg", buf.Bytes())
-
+	return "ok"
 }

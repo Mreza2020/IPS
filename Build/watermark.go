@@ -2,92 +2,135 @@ package Build
 
 import (
 	"bytes"
-	"github.com/disintegration/imaging"
-	"github.com/gin-gonic/gin"
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/jpeg"
-	"net/http"
+	"image/png"
 	"os"
-	"strconv"
+	"path/filepath"
+	"strings"
+
+	"github.com/Mreza2020/Image_Processing_Service/DB"
+	"github.com/disintegration/imaging"
 )
 
-type watermarkST struct {
-	Watermark string `json:"watermark"`
-	FIle      string `json:"file"`
-	Opacity   string `json:"opacity"`
-}
-
-func Watermark(c *gin.Context) {
-	var watermark watermarkST
-	if err := c.ShouldBindJSON(&watermark); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON request"})
-		return
-	}
-	file, err := os.Open(watermark.FIle)
+// Watermark applies a resized watermark to the specified image with the given
+// opacity and display mode, then saves the processed image as a new file.
+// The watermark can be placed once in the bottom-right corner or repeated
+// across the image in a tiled layout. Supported output formats are JPEG and PNG.
+// It returns "ok" when the operation succeeds and an empty string if the input
+// images are invalid, the opacity or mode is invalid, the format is unsupported,
+// or the processed image cannot be encoded or saved.
+func Watermark(fileName, fileNameW, opacity, mode string) string {
+	file, err := os.Open(fileName)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File not found"})
-		return
+		fmt.Println(err)
+		return ""
 	}
-	defer func(file *os.File) {
-		err = file.Close()
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"response": "Failed to properly close the file"})
-			return
-		}
-	}(file)
+	defer file.Close()
 
 	srcImage, err := imaging.Decode(file)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid image format"})
-		return
+		fmt.Printf("Invalid image format : %v", err)
+
+		return ""
 	}
 
-	fileW, err := os.Open(watermark.Watermark)
+	fileW, err := os.Open(fileNameW)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File not found"})
-		return
+		fmt.Println(err)
+		return ""
 	}
-	defer func(fileW *os.File) {
-		err = fileW.Close()
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"response": "Failed to properly close the file"})
-			return
-		}
-	}(fileW)
+	defer fileW.Close()
 
-	wImage, err := imaging.Decode(fileW)
+	srcImage1, err := imaging.Decode(fileW)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid image format"})
-		return
+		fmt.Printf("Invalid image format : %v", err)
+
+		return ""
 	}
-	val, err := strconv.Atoi(watermark.Opacity)
-	opacity := 50
-	if err == nil && val >= 0 && val <= 100 {
-		opacity = val
+
+	val := ConvertToInt(opacity)
+	opacityD := 50
+	if val >= 0 && val <= 100 {
+		opacityD = val
 	}
-	Resized := imaging.Resize(wImage, srcImage.Bounds().Dx()/5, 0, imaging.Lanczos)
+
+	mode1 := strings.ToLower(mode)
+	if mode1 != "single" && mode1 != "tile" {
+		fmt.Println("Mode must be 'single' or 'tile'")
+		return ""
+	}
+
+	Resized := imaging.Resize(srcImage1, srcImage.Bounds().Dx()/5, 0, imaging.Lanczos)
 
 	WithOpacity := imaging.AdjustFunc(Resized, func(c color.NRGBA) color.NRGBA {
-		newA := uint8(float64(c.A) * float64(opacity) / 100)
+		newA := uint8(float64(c.A) * float64(opacityD) / 100)
 		return color.NRGBA{R: c.R, G: c.G, B: c.B, A: newA}
 	})
+
 	dst := imaging.Clone(srcImage)
-	offset := image.Pt(dst.Bounds().Dx()-WithOpacity.Bounds().Dx()-10, dst.Bounds().Dy()-WithOpacity.Bounds().Dy()-10)
 
-	dst1 := imaging.Clone(dst)
-	dst2 := imaging.Clone(WithOpacity)
+	if mode1 == "single" {
+		offset := image.Pt(dst.Bounds().Dx()-WithOpacity.Bounds().Dx()-10, dst.Bounds().Dy()-WithOpacity.Bounds().Dy()-10)
 
-	draw.Draw(dst1, dst2.Bounds().Add(offset), dst2, image.Point{}, draw.Over)
+		draw.Draw(dst, WithOpacity.Bounds().Add(offset), WithOpacity, image.Point{}, draw.Over)
+	}
+	if mode1 == "tile" {
+		watermarkWidth := WithOpacity.Bounds().Dx()
+		watermarkHeight := WithOpacity.Bounds().Dy()
+		if watermarkWidth <= 0 || watermarkHeight <= 0 {
+			fmt.Println("Invalid watermark dimensions")
+			return ""
+		}
 
-	var buf bytes.Buffer
-	opts := &jpeg.Options{Quality: 100}
+		gapX := 30
+		gapY := 30
 
-	if err = jpeg.Encode(&buf, dst1, opts); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode image"})
-		return
+		for y := 0; y < dst.Bounds().Dy(); y += watermarkHeight + gapY {
+			for x := 0; x < dst.Bounds().Dx(); x += watermarkWidth + gapX {
+				offset := image.Pt(x, y)
+				draw.Draw(dst, WithOpacity.Bounds().Add(offset), WithOpacity, image.Point{}, draw.Over)
+			}
+		}
 	}
 
-	c.Data(http.StatusOK, "image/jpeg", buf.Bytes())
+	var buf bytes.Buffer
+	var outputFile string
+
+	ext := strings.ToLower(filepath.Ext(fileName))
+
+	fileName1 := strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName))
+
+	dir := filepath.Dir(fileName)
+	switch ext {
+	case ".jpg", ".jpeg":
+		opts := &jpeg.Options{Quality: 100}
+		if err = jpeg.Encode(&buf, dst, opts); err != nil {
+			fmt.Printf("Failed to encode image : %v", err)
+
+			return ""
+		}
+		outputFile = filepath.Join(dir, fileName1+"_Watermark.jpg")
+	case ".png":
+		if err = png.Encode(&buf, dst); err != nil {
+			fmt.Printf("Failed to encode image: %s\n", err)
+
+			return ""
+
+		}
+		outputFile = filepath.Join(dir, fileName1+"_Watermark.png")
+	default:
+		fmt.Println("Unsupported file extension")
+
+		return ""
+
+	}
+	path := DB.SaveImage(&buf, outputFile)
+	fmt.Printf("Watermark applied to %s\n", path)
+
+	return "ok"
+
 }

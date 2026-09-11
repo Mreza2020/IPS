@@ -2,57 +2,75 @@ package Build
 
 import (
 	"bytes"
-	"github.com/disintegration/imaging"
-	"github.com/gin-gonic/gin"
+	"fmt"
 	"image/jpeg"
-	"net/http"
+	"image/png"
 	"os"
-	"strconv"
+	"path/filepath"
+	"strings"
+
+	"github.com/Mreza2020/Image_Processing_Service/DB"
+	"github.com/disintegration/imaging"
 )
 
-type ResizeS struct {
-	Width  string `json:"width"`
-	Height string `json:"height"`
-	File   string `json:"file"`
-}
-
-func Resize(c *gin.Context) {
-	var resize ResizeS
-	if err := c.ShouldBindJSON(&resize); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON request"})
-	}
-	width, err := strconv.Atoi(resize.Width)
-	height, err := strconv.Atoi(resize.Height)
-	if err != nil || width < 0 || height < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request (width or height)"})
-		return
-	}
-	file, err := os.Open(resize.File)
+// Resize scales the specified image to the given width and height using the
+// Lanczos resampling algorithm and saves the resized image as a new file.
+// Supported image formats are JPEG and PNG. It returns "ok" when the operation
+// succeeds and an empty string if the image is invalid, the format is
+// unsupported, or the resized image cannot be encoded or saved.
+func Resize(fileName, width, height string) string {
+	file, err := os.Open(fileName)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File not found"})
-		return
+		fmt.Println(err)
+		return ""
 	}
-	defer func(file *os.File) {
-		err = file.Close()
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"response": "Failed to properly close the file"})
-			return
-		}
-	}(file)
+	defer file.Close()
 
 	srcImage, err := imaging.Decode(file)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid image format"})
-		return
-	}
-	dstImage := imaging.Resize(srcImage, width, height, imaging.Lanczos)
-	var buf bytes.Buffer
-	opts := &jpeg.Options{Quality: 100}
-	if err = jpeg.Encode(&buf, dstImage, opts); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode image"})
-		return
-	}
+		fmt.Printf("Invalid image format : %v", err)
 
-	c.Data(http.StatusOK, "image/jpeg", buf.Bytes())
+		return ""
+	}
+	w := ConvertToInt(width)
+	h := ConvertToInt(height)
+
+	dstImage := imaging.Resize(srcImage, w, h, imaging.Lanczos)
+
+	var buf bytes.Buffer
+	var outputFile string
+
+	ext := strings.ToLower(filepath.Ext(fileName))
+
+	fileName1 := strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName))
+
+	dir := filepath.Dir(fileName)
+	switch ext {
+	case ".jpg", ".jpeg":
+		opts := &jpeg.Options{Quality: 100}
+		if err = jpeg.Encode(&buf, dstImage, opts); err != nil {
+			fmt.Printf("Failed to encode image : %v", err)
+
+			return ""
+		}
+		outputFile = filepath.Join(dir, fileName1+"_resize.jpg")
+	case ".png":
+		if err = png.Encode(&buf, dstImage); err != nil {
+			fmt.Printf("Failed to encode image: %s\n", err)
+
+			return ""
+
+		}
+		outputFile = filepath.Join(dir, fileName1+"_resize.png")
+	default:
+		fmt.Println("Unsupported file extension")
+
+		return ""
+
+	}
+	path := DB.SaveImage(&buf, outputFile)
+	fmt.Printf("Resize %s to %s\n", fileName, path)
+
+	return "ok"
 
 }

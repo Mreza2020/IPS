@@ -2,70 +2,86 @@ package Build
 
 import (
 	"bytes"
-	"github.com/disintegration/imaging"
-	"github.com/gin-gonic/gin"
+	"fmt"
 	"image"
 	"image/jpeg"
-	"net/http"
+	"image/png"
 	"os"
-	"strconv"
+	"path/filepath"
+	"strings"
+
+	"github.com/Mreza2020/Image_Processing_Service/DB"
+	"github.com/disintegration/imaging"
 )
 
-type CropS struct {
-	Width  string `json:"width"`
-	Height string `json:"height"`
-	X      string `json:"x"`
-	Y      string `json:"y"`
-	File   string `json:"file"`
-}
+// Crop extracts a rectangular region from the specified image using the given
+// width, height, and starting X/Y coordinates, then saves the cropped image as
+// a new file while preserving the original image format. It returns "ok" when
+// the operation succeeds and an empty string if the input image is invalid,
+// the crop region is outside the image bounds, encoding fails, or the format
+// is unsupported.
+func Crop(width, height, x, y, fileName string) string {
+	w := ConvertToInt(width)
+	h := ConvertToInt(height)
+	x1 := ConvertToInt(x)
+	y1 := ConvertToInt(y)
 
-func Crop(c *gin.Context) {
-	var crop CropS
-	if err := c.ShouldBindJSON(&crop); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON request"})
-		return
-	}
-	x, err := strconv.Atoi(crop.X)
-	y, err := strconv.Atoi(crop.Y)
-	if err != nil || x < 0 || y < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"response": "!!!The file is not valid!!!(x or y)"})
-		return
-	}
-	width, err := strconv.Atoi(crop.Width)
-	height, err := strconv.Atoi(crop.Height)
-	if err != nil || width < 0 || height < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"response": "!!!The file is not valid!!!(Width or Height)"})
-		return
-	}
-	file, err := os.Open(crop.File)
+	f, err := os.Open(fileName)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File not found"})
-		return
+		fmt.Println(err)
+		return ""
 	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"response": "Failed to properly close the file"})
-			return
-		}
-	}(file)
-	srcImage, err := imaging.Decode(file)
+	defer f.Close()
+
+	srcImage, err := imaging.Decode(f)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid image format"})
-		return
+		fmt.Printf("Invalid image format : %v", err)
+
+		return ""
 	}
-	if x+width > srcImage.Bounds().Dx() || y+height > srcImage.Bounds().Dy() {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Crop dimensions out of bounds"})
-		return
+	if x1 < 0 || y1 < 0 ||
+		w <= 0 || h <= 0 ||
+		x1+w > srcImage.Bounds().Dx() ||
+		y1+h > srcImage.Bounds().Dy() {
+		fmt.Println("Crop dimensions out of bounds")
+		return ""
 	}
-	cropped := imaging.Crop(srcImage, image.Rect(x, y, x+width, y+height))
+	cropped := imaging.Crop(srcImage, image.Rect(x1, y1, x1+w, y1+h))
+
 	var buf bytes.Buffer
-	opts := &jpeg.Options{Quality: 100}
-	if err = jpeg.Encode(&buf, cropped, opts); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode image"})
-		return
-	}
+	var outputFile string
 
-	c.Data(http.StatusOK, "image/jpeg", buf.Bytes())
+	ext := strings.ToLower(filepath.Ext(fileName))
+
+	fileName1 := strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName))
+
+	dir := filepath.Dir(fileName)
+	switch ext {
+	case ".jpg", ".jpeg":
+		opts := &jpeg.Options{Quality: 100}
+		if err = jpeg.Encode(&buf, cropped, opts); err != nil {
+			fmt.Printf("Failed to encode image : %v", err)
+
+			return ""
+		}
+		outputFile = filepath.Join(dir, fileName1+"_cropped.jpg")
+	case ".png":
+		if err = png.Encode(&buf, cropped); err != nil {
+			fmt.Printf("Failed to encode image: %s\n", err)
+
+			return ""
+
+		}
+		outputFile = filepath.Join(dir, fileName1+"_cropped.png")
+	default:
+		fmt.Println("Unsupported file extension")
+
+		return ""
+
+	}
+	path := DB.SaveImage(&buf, outputFile)
+	fmt.Printf("Crop %s to %s\n", fileName, path)
+
+	return "ok"
 
 }

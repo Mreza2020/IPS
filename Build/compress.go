@@ -2,52 +2,79 @@ package Build
 
 import (
 	"bytes"
-	"github.com/disintegration/imaging"
-	"github.com/gin-gonic/gin"
+	"fmt"
 	"image/jpeg"
-	"net/http"
+	"image/png"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
+
+	"github.com/Mreza2020/Image_Processing_Service/DB"
+	"github.com/disintegration/imaging"
 )
 
-type CompressST struct {
-	File    string `json:"file"`
-	Quality string `json:"quality"`
-}
+// Compress decodes the specified image, re-encodes it according to its format,
+// and saves the compressed result as a new file. For JPEG images, the quality
+// is controlled by the provided value from 1 to 100. PNG images are re-encoded
+// using the standard PNG encoder. The function returns "ok" on success and an
+// empty string if the operation fails or the image format is unsupported.
+func Compress(file, quality string) string {
+	f, err := os.Open(file)
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+	defer f.Close()
 
-func Compress(c *gin.Context) {
-	var compress CompressST
-	if err := c.ShouldBindJSON(&compress); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON request"})
-		return
-	}
-	file, err := os.Open(compress.File)
+	srcImage, err := imaging.Decode(f)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File not found"})
-		return
+		fmt.Printf("Invalid image format: %s\n", err)
+		return ""
 	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"response": "Failed to properly close the file"})
-			return
-		}
-	}(file)
-	srcImage, err := imaging.Decode(file)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid image format"})
-		return
+
+	DefaultQuality := 75
+	if val, err1 := strconv.Atoi(quality); err1 == nil && val >= 1 && val <= 100 {
+		DefaultQuality = val
+	} else {
+		fmt.Println("Invalid quality")
 	}
-	quality := 75
-	if val, err1 := strconv.Atoi(compress.Quality); err1 == nil && val >= 1 && val <= 100 {
-		quality = val
-	}
+
+	ext := strings.ToLower(filepath.Ext(file))
+
+	fileName := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
+
+	dir := filepath.Dir(file)
+
 	var buf bytes.Buffer
+	var outputFile string
 
-	if err = jpeg.Encode(&buf, srcImage, &jpeg.Options{Quality: quality}); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode image"})
-		return
+	switch ext {
+	case ".jpg", ".jpeg":
+		if err = jpeg.Encode(&buf, srcImage, &jpeg.Options{Quality: DefaultQuality}); err != nil {
+			fmt.Printf("Failed to encode image: %s\n", err)
+
+			return ""
+
+		}
+		outputFile = filepath.Join(dir, fileName+"_compressd.jpg")
+	case ".png":
+		if err = png.Encode(&buf, srcImage); err != nil {
+			fmt.Printf("Failed to encode image: %s\n", err)
+
+			return ""
+
+		}
+		outputFile = filepath.Join(dir, fileName+"_compressd.png")
+	default:
+		fmt.Println("Unsupported file extension")
+
+		return ""
+
 	}
-	c.Data(http.StatusOK, "image/jpeg", buf.Bytes())
+	path := DB.SaveImage(&buf, outputFile)
+	fmt.Printf("Compressed %s to %s\n", file, path)
+
+	return "ok"
 
 }

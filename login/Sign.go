@@ -1,34 +1,39 @@
 package Login
 
 import (
-	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
-	"log"
+	"fmt"
 )
 
+type User struct {
+	ID       uint64
+	Username string
+	Password string
+}
+
+var UserStorage []User
+
+var Authentication *User
+
 func Sign(name string, password string) string {
-	db, err := sql.Open("mysql", "username:password@protocol(address:port)/dbname")
-	if err != nil {
-		log.Fatal(err)
+	if len(name) == 0 || len(password) == 0 {
+
+		return ""
 	}
-	defer func(db *sql.DB) {
-		err = db.Close()
-		if err != nil {
-			log.Fatal(err)
+	for _, username := range UserStorage {
+		if username.Username == name {
+			fmt.Println("Username already exists.")
+
+			return ""
 		}
-	}(db)
-
-	if err = db.Ping(); err != nil {
-		log.Fatal("Cannot connect to database:", err)
 	}
 
-	insertQuery := "INSERT INTO login(name, password) VALUES (?,?)"
-	_, err = db.Exec(insertQuery, name, password)
-
-	if err != nil {
-		log.Fatalln(err)
-
+	sign := User{
+		ID:       uint64(len(UserStorage) + 1),
+		Username: name,
+		Password: password,
 	}
+
+	UserStorage = append(UserStorage, sign)
+
 	return "ok"
-
 }
