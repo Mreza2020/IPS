@@ -4,12 +4,13 @@ import (
 	"fmt"
 
 	"github.com/Mreza2020/Image_Processing_Service/DB"
+	"github.com/Mreza2020/Image_Processing_Service/Security"
 )
 
 var Authentication *DB.User
 
-// Sign registers a new user with the specified username and password, stores
-// the user in memory, and persists the account data to the user database.
+// Sign registers a new user with the specified username and password, hashes
+// the password, stores the user in memory, and persists the account data.
 // It returns "ok" when registration succeeds and an empty string if the
 // username or password is empty or the username is already registered.
 func Sign(name string, password string) string {
@@ -29,7 +30,7 @@ func Sign(name string, password string) string {
 	sign := DB.User{
 		ID:       uint64(len(DB.UserStorage) + 1),
 		Username: name,
-		Password: password,
+		Password: Security.HashPassword(password),
 	}
 
 	DB.UserStorage = append(DB.UserStorage, sign)

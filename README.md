@@ -49,6 +49,12 @@ This project uses several open-source packages. The packages and their respectiv
 
 [License](https://github.com/golang-jwt/jwt?tab=MIT-1-ov-file)
 
+### 6. Go Cryptography
+
+**Package:** `golang.org/x/crypto`
+**License:** BSD-3-Clause
+
+[License](https://github.com/golang/crypto?tab=BSD-3-Clause-1-ov-file)
 ---
 
 Now that you have an overview of the project and its dependencies, let's take a look at how to use IPS.

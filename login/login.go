@@ -1,6 +1,9 @@
 package Login
 
-import "github.com/Mreza2020/Image_Processing_Service/DB"
+import (
+	"github.com/Mreza2020/Image_Processing_Service/DB"
+	"github.com/Mreza2020/Image_Processing_Service/Security"
+)
 
 // Login authenticates a user by verifying the provided username and password
 // against the stored user records. It returns "ok" and the authenticated user
@@ -13,7 +16,7 @@ func Login(username string, password string) (string, *DB.User) {
 	}
 
 	for _, user := range DB.UserStorage {
-		if user.Username == username && user.Password == password {
+		if user.Username == username && Security.CheckPasswordHash(password, user.Password) {
 
 			return "ok", &user
 		}
