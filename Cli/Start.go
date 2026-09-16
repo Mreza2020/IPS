@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/Mreza2020/Image_Processing_Service/Build"
+	"github.com/Mreza2020/Image_Processing_Service/DB"
 	Login "github.com/Mreza2020/Image_Processing_Service/login"
 )
 
@@ -38,7 +39,23 @@ func StartCli() {
 	fmt.Println("!!! Welcome to the cli program !!!")
 
 	command := flag.String("cli", "run app", "run command")
+	commandD := flag.String("SerializeMode", "txt", "Save Mode")
+
 	flag.Parse()
+
+	switch *commandD {
+	case "":
+		DB.SerializeMode = DB.SerializeMode1
+		fmt.Println("txt")
+	case "txt":
+		DB.SerializeMode = DB.SerializeMode1
+		fmt.Println("txt")
+	case "json":
+		DB.SerializeMode = DB.SerializeMode2
+		fmt.Println("json")
+	}
+
+	DB.LoadUsers()
 
 	for {
 		if Command == "" {

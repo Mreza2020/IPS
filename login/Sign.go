@@ -34,7 +34,7 @@ func Sign(name string, password string) string {
 
 	DB.UserStorage = append(DB.UserStorage, sign)
 
-	data := fmt.Sprintf("id: %d, name: %s, password: %s", sign.ID, sign.Username, sign.Password)
+	data := fmt.Sprintf("id: %d, name: %s, password: %s\n", sign.ID, sign.Username, sign.Password)
 
 	DB.WriteUsers(data)
 
