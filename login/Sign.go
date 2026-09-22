@@ -7,8 +7,6 @@ import (
 	"github.com/Mreza2020/Image_Processing_Service/Security"
 )
 
-var Authentication *DB.User
-
 // Sign registers a new user with the specified username and password, hashes
 // the password, stores the user in memory, and persists the account data.
 // It returns "ok" when registration succeeds and an empty string if the

@@ -11,6 +11,8 @@ import (
 	Login "github.com/Mreza2020/Image_Processing_Service/login"
 )
 
+var Authentication *DB.User
+
 // Scanner reads a single line from standard input and returns it as a string.
 //
 // If a non-empty format string is provided, the input is printed using
@@ -58,12 +60,10 @@ func StartCli() {
 	DB.LoadUsers()
 
 	for {
-		if Command == "" {
-			RunCommand(*command)
-			fmt.Println("please enter another command")
-			*command = Scanner("")
-		}
-		RunCommand(Command)
+
+		RunCommand(*command)
+		fmt.Println("please enter another command")
+		*command = Scanner("")
 
 	}
 
@@ -89,13 +89,11 @@ func login() {
 		fmt.Println("Login failed.")
 		return
 	}
-	Login.Authentication = user
+	Authentication = user
 
 	fmt.Println("!!! Login successfully !!!")
 	imagePath()
 }
-
-var Command string
 
 var ImagePath string
 
@@ -109,6 +107,7 @@ func imagePath() {
 	fmt.Println("Please enter the file path")
 	filePath := Scanner("")
 	ImagePath = filePath
+	fmt.Println("")
 }
 
 // printHelp displays the available CLI commands and their usage information.
@@ -116,7 +115,7 @@ func imagePath() {
 // The help output describes authentication requirements, image-processing
 // commands, supported options, and common examples.
 func printHelp() {
-	fmt.Println("Usage: cli <command>")
+	fmt.Println("Usage: cli <command> [options]")
 	fmt.Println()
 	fmt.Println("Image Processing CLI")
 	fmt.Println("====================")
@@ -132,9 +131,23 @@ func printHelp() {
 	fmt.Println("  rotate     Rotate an image by a specified angle")
 	fmt.Println("  watermark  Add an image watermark with opacity and display mode")
 	fmt.Println("  path       Show and change the current image path")
+	fmt.Println("  list       Show images saved for the current user")
 	fmt.Println("  sign       Sign in / register a user")
 	fmt.Println("  exit       Exit the application")
 	fmt.Println("  help       Show help information")
+	fmt.Println()
+
+	fmt.Println("Options:")
+	fmt.Println()
+	fmt.Println("  -SerializeMode")
+	fmt.Println("      Select the mode used to save/serialize data.")
+	fmt.Println("      Supported modes:")
+	fmt.Println("         txt Save data as text")
+	fmt.Println("         json Save data as JSON")
+	fmt.Println("         Default: txt")
+	fmt.Println("      Example:")
+	fmt.Println("         cli -SerializeMode=txt")
+	fmt.Println("         cli -SerializeMode=json")
 	fmt.Println()
 
 	fmt.Println("Command details:")
@@ -197,6 +210,11 @@ func printHelp() {
 	fmt.Println("    Example: cli path")
 	fmt.Println()
 
+	fmt.Println("  list")
+	fmt.Println("    Show the images saved for the currently logged-in user.")
+	fmt.Println("    Example: cli list")
+	fmt.Println()
+
 	fmt.Println("  sign")
 	fmt.Println("    Sign in or register a user with username and password.")
 	fmt.Println("    Example: cli sign")
@@ -209,6 +227,7 @@ func printHelp() {
 
 	fmt.Println("Examples:")
 	fmt.Println()
+	fmt.Println("  cli -SerializeMode=txt")
 	fmt.Println("  cli compress")
 	fmt.Println("  cli crop")
 	fmt.Println("  cli filter")
@@ -218,6 +237,7 @@ func printHelp() {
 	fmt.Println("  cli rotate")
 	fmt.Println("  cli watermark")
 	fmt.Println("  cli path")
+	fmt.Println("  cli list")
 	fmt.Println("  cli sign")
 	fmt.Println("  cli exit")
 	fmt.Println()
@@ -225,10 +245,18 @@ func printHelp() {
 	fmt.Println("Notes:")
 	fmt.Println("  - Login is required for image-processing commands.")
 	fmt.Println("  - Set the image path before using image processing commands.")
+	fmt.Println("  - Use 'list' to display images saved for the current user.")
+	fmt.Println("  - SerializeMode controls the data save/serialization mode.")
+	fmt.Println("  - The default SerializeMode is 'txt'.")
 	fmt.Println("  - Follow the prompts shown by each command.")
 	fmt.Println("  - Use 'cli help' to display this information again.")
 	fmt.Println("  - Use 'exit' to close the application.")
 	fmt.Println()
+}
+
+func FinalizeCommand() {
+	DB.SaveImageDB(Authentication.Username)
+
 }
 
 // RunCommand executes a CLI command and handles its associated user interaction.
@@ -240,8 +268,7 @@ func printHelp() {
 // Supported commands include help, path, sign, compress, crop, filter, flip,
 // format, resize, rotate, watermark, and exit.
 func RunCommand(command string) {
-	if command != "sign" && command != "exit" && Login.Authentication == nil {
-		Command = command
+	if command != "sign" && command != "exit" && Authentication == nil {
 		fmt.Println("!!! please Login !!!")
 		login()
 
@@ -283,6 +310,8 @@ func RunCommand(command string) {
 			return
 		}
 
+		FinalizeCommand()
+
 		fmt.Println("!!! Compression completed successfully !!!")
 		fmt.Println("Output:", result)
 	case "crop":
@@ -306,6 +335,8 @@ func RunCommand(command string) {
 			return
 		}
 
+		FinalizeCommand()
+
 		fmt.Println("!!! Crop completed successfully !!!")
 		fmt.Println("Result:", result)
 
@@ -320,6 +351,8 @@ func RunCommand(command string) {
 
 			return
 		}
+
+		FinalizeCommand()
 
 		fmt.Println("!!! Filter applied successfully !!!")
 		fmt.Println("Output:", result)
@@ -336,6 +369,8 @@ func RunCommand(command string) {
 			return
 		}
 
+		FinalizeCommand()
+
 		fmt.Println("!!! Flip completed successfully !!!")
 		fmt.Println("Output:", result)
 
@@ -350,6 +385,8 @@ func RunCommand(command string) {
 
 			return
 		}
+
+		FinalizeCommand()
 
 		fmt.Println("!!! Format conversion completed successfully !!!")
 		fmt.Println("Output:", result)
@@ -369,6 +406,8 @@ func RunCommand(command string) {
 			return
 		}
 
+		FinalizeCommand()
+
 		fmt.Println("!!! Resize completed successfully !!!")
 		fmt.Println("Output:", result)
 
@@ -380,8 +419,11 @@ func RunCommand(command string) {
 
 		if result == "" {
 			fmt.Println("Rotate failed.")
+
 			return
 		}
+
+		FinalizeCommand()
 
 		fmt.Println("!!! Rotate completed successfully !!!")
 		fmt.Println("Output:", result)
@@ -405,11 +447,33 @@ func RunCommand(command string) {
 
 		if result == "" {
 			fmt.Println("Watermark failed.")
+
 			return
 		}
 
+		FinalizeCommand()
+
 		fmt.Println("!!! Watermark applied successfully !!!")
 		fmt.Println("Output:", result)
+
+	case "list":
+		DB.LoadImageDB()
+
+		if len(DB.ImageDB) == 0 {
+			fmt.Println("No images found.")
+			return
+		}
+
+		fmt.Println("\nImages:")
+		fmt.Println("-------------------------------")
+
+		for _, f := range DB.ImageDB {
+			if f.User == Authentication.Username {
+				fmt.Printf("Created by %v, File path %v\n", f.User, f.Path)
+			}
+		}
+		fmt.Println("")
+
 	case "exit":
 		os.Exit(0)
 

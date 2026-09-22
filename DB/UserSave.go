@@ -103,11 +103,8 @@ func LoadUsers() {
 			parts := strings.Split(line, ", ")
 
 			if len(parts) != 3 {
-				fmt.Printf(
-					"Invalid data at line %d: %s\n",
-					lineNumber,
-					line,
-				)
+				fmt.Printf("Invalid data at line %d: %s\n", lineNumber, line)
+
 				continue
 			}
 
