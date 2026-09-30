@@ -12,8 +12,10 @@ func HashPassword(password string) string {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
 		fmt.Println(err)
+
 		return ""
 	}
+
 	return string(bytes)
 }
 
@@ -21,5 +23,6 @@ func HashPassword(password string) string {
 // returns true if the password matches or false if the verification fails.
 func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+
 	return err == nil
 }

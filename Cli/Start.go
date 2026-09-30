@@ -41,9 +41,16 @@ func StartCli() {
 	fmt.Println("!!! Welcome to the cli program !!!")
 
 	command := flag.String("cli", "run app", "run command")
+	help := flag.Bool("help", false, "help")
 	commandD := flag.String("SerializeMode", "txt", "Save Mode")
 
 	flag.Parse()
+
+	if *help {
+		printHelp()
+
+		os.Exit(0)
+	}
 
 	switch *commandD {
 	case "":
